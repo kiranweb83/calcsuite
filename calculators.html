@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalcSuite — Smart Calculators</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f23;
+    --border: #2a2a30;
+    --border2: #3a3a42;
+    --text: #f0f0f5;
+    --muted: #7a7a8c;
+    --accent-deposit: #00e5a0;
+    --accent-sci: #6c8fff;
+    --accent-tax: #ff8c42;
+    --accent-dep-dim: rgba(0,229,160,0.12);
+    --accent-sci-dim: rgba(108,143,255,0.12);
+    --accent-tax-dim: rgba(255,140,66,0.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    padding: 2rem 2.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(14,14,16,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #00e5a0 0%, #6c8fff 50%, #ff8c42 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .tagline {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 1.5rem 2.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active-dep { color: var(--accent-deposit); border-bottom-color: var(--accent-deposit); }
+  .tab.active-sci { color: var(--accent-sci); border-bottom-color: var(--accent-sci); }
+  .tab.active-tax { color: var(--accent-tax); border-bottom-color: var(--accent-tax); }
+  .tab-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .dep-dot { background: var(--accent-deposit); }
+  .sci-dot { background: var(--accent-sci); }
+  .tax-dot { background: var(--accent-tax); }
+
+  /* PANELS */
+  .panel { display: none; padding: 2.5rem; max-width: 960px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* DEPOSIT CALC */
+  .dep-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+  .field { margin-bottom: 1rem; }
+  .field label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    font-family: var(--font-mono);
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.9rem;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: var(--border2); }
+  .field select option { background: var(--surface2); }
+
+  .btn {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.18s;
+    margin-top: 0.5rem;
+  }
+  .btn-dep { background: var(--accent-deposit); color: #000; }
+  .btn-dep:hover { background: #00ffb4; transform: translateY(-1px); }
+  .btn-sci { background: var(--accent-sci); color: #fff; }
+  .btn-sci:hover { background: #859fff; transform: translateY(-1px); }
+  .btn-tax { background: var(--accent-tax); color: #000; }
+  .btn-tax:hover { background: #ffaa70; transform: translateY(-1px); }
+
+  /* Results */
+  .result-card {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-row .label { color: var(--muted); font-family: var(--font-mono); font-size: 0.78rem; }
+  .result-row .val { font-family: var(--font-mono); font-weight: 500; }
+  .result-big {
+    text-align: center;
+    padding: 1.5rem 0 0.5rem;
+  }
+  .result-big .num {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .result-big .sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+    font-family: var(--font-mono);
+  }
+  .dep-accent { color: var(--accent-deposit); }
+  .sci-accent { color: var(--accent-sci); }
+  .tax-accent { color: var(--accent-tax); }
+
+  /* Interest bar chart */
+  .bar-wrap { margin-top: 1rem; }
+  .bar-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; font-size: 0.75rem; }
+  .bar-label { width: 72px; color: var(--muted); font-family: var(--font-mono); font-size: 0.7rem; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .bar-val { width: 68px; text-align: right; font-family: var(--font-mono); font-size: 0.72rem; }
+
+  /* SCIENTIFIC CALC */
+  .sci-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .sci-display {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    text-align: right;
+  }
+  .sci-expr {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    min-height: 1.2em;
+    word-break: break-all;
+  }
+  .sci-input {
+    font-family: var(--font-mono);
+    font-size: 2.6rem;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    word-break: break-all;
+    min-height: 1.2em;
+    color: var(--accent-sci);
+  }
+  .sci-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .sci-btn {
+    padding: 0.7rem 0.3rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    user-select: none;
+  }
+  .sci-btn:hover { background: var(--surface2); border-color: var(--border2); }
+  .sci-btn:active { transform: scale(0.96); }
+  .sci-btn.fn { color: var(--accent-sci); font-size: 0.7rem; }
+  .sci-btn.op { color: var(--accent-deposit); }
+  .sci-btn.num { color: var(--text); }
+  .sci-btn.eq { background: var(--accent-sci); color: #fff; border-color: var(--accent-sci); font-size: 1rem; }
+  .sci-btn.eq:hover { background: #859fff; }
+  .sci-btn.clr { color: #ff5555; }
+  .sci-btn.zero { grid-column: span 2; }
+  .sci-btn.wide { grid-column: span 2; }
+
+  /* INCOME TAX CALC */
+  .tax-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .tax-slab-title {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+  }
+  .slab-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    border-bottom: 1px solid var(--border);
+  }
+  .slab-row:last-child { border-bottom: none; }
+  .slab-pct { color: var(--accent-tax); font-weight: 500; }
+  .slab-range { color: var(--muted); }
+  .slab-tax { color: var(--text); }
+
+  /* Donut */
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  .donut-svg { flex-shrink: 0; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    margin-bottom: 0.4rem;
+    font-family: var(--font-mono);
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Regime toggle */
+  .regime-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .rtab {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+  }
+  .rtab.active { border-color: var(--accent-tax); color: var(--accent-tax); background: var(--accent-tax-dim); }
+
+  /* Breakdown table */
+  .bk-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .bk-table th { text-align: left; font-family: var(--font-mono); color: var(--muted); font-weight: 400; padding: 0.3rem 0; border-bottom: 1px solid var(--border); }
+  .bk-table td { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-family: var(--font-mono); }
+  .bk-table tr:last-child td { border-bottom: none; }
+  .bk-table .right { text-align: right; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    header { padding: 1rem 1.25rem; }
+    .tabs { padding: 0 1.25rem 0; overflow-x: auto; gap: 0; }
+    .tab { padding: 0.65rem 1rem; font-size: 0.78rem; white-space: nowrap; }
+    .panel { padding: 1.25rem; }
+    .dep-grid, .tax-grid { grid-template-columns: 1fr; }
+    .sci-grid { grid-template-columns: repeat(5, 1fr); }
+    .sci-btn { padding: 0.6rem 0.2rem; font-size: 0.72rem; }
+    .sci-input { font-size: 1.8rem; }
+    .donut-wrap { flex-direction: column; }
+  }
+
+  /* animate in */
+  .panel.active { animation: fadeUp 0.28s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CalcSuite</div>
+  <div class="tagline">// three calculators. one place.</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active-dep" onclick="switchTab('dep')">
+    <span class="tab-dot dep-dot"></span> Deposit Rate
+  </button>
+  <button class="tab" onclick="switchTab('sci')">
+    <span class="tab-dot sci-dot"></span> Scientific
+  </button>
+  <button class="tab" onclick="switchTab('tax')">
+    <span class="tab-dot tax-dot"></span> Income Tax
+  </button>
+</div>
+
+<!-- ========== DEPOSIT RATE CALCULATOR ========== -->
+<div class="panel active" id="panel-dep">
+  <div class="dep-grid">
+    <div class="card">
+      <div class="card-title">Inputs</div>
+      <div class="field">
+        <label>Principal Amount (₹)</label>
+        <input type="number" id="dep-principal" value="100000" min="1000" step="1000">
+      </div>
+      <div class="field">
+        <label>Annual Interest Rate (%)</label>
+        <input type="number" id="dep-rate" value="7.1" min="0.1" max="30" step="0.05">
+      </div>
+      <div class="field">
+        <label>Tenure</label>
+        <input type="number" id="dep-tenure" value="5" min="1">
+      </div>
+      <div class="field">
+        <label>Tenure Type</label>
+        <select id="dep-tenure-type">
+          <option value="years">Years</option>
+          <option value="months">Months</option>
+          <option value="days">Days</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Compounding Frequency</label>
+        <select id="dep-freq">
+          <option value="1">Annually</option>
+          <option value="2">Semi-Annually</option>
+          <option value="4" selected>Quarterly</option>
+          <option value="12">Monthly</option>
+          <option value="365">Daily</option>
+          <option value="si">Simple Interest</option>
+        </select>
+      </div>
+      <button class="btn btn-dep" onclick="calcDeposit()">Calculate Returns</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Results</div>
+      <div id="dep-result">
+        <div style="color:var(--muted);font-size:0.82rem;font-family:var(--font-mono);padding:2rem 0;text-align:center;">Enter details and calculate →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCIENTIFIC CALCULATOR ========== -->
+<div class="panel" id="panel-sci">
+  <div class="sci-layout">
+    <div class="sci-display">
+      <div class="sci-expr" id="sci-expr">&nbsp;</div>
+      <div class="sci-input" id="sci-disp">0</div>
+    </div>
+    <div class="sci-grid" id="sci-grid">
+      <!-- Row 1: functions -->
+      <button class="sci-btn fn" onclick="sciFunc('sin(')">sin</button>
+      <button class="sci-btn fn" onclick="sciFunc('cos(')">cos</button>
+      <button class="sci-btn fn" onclick="sciFunc('tan(')">tan</button>
+      <button class="sci-btn fn" onclick="sciFunc('log(')">log</button>
+      <button class="sci-btn fn" onclick="sciFunc('ln(')">ln</button>
+
+      <!-- Row 2 -->
+      <button class="sci-btn fn" onclick="sciFunc('asin(')">sin⁻¹</button>
+      <button class="sci-btn fn" onclick="sciFunc('acos(')">cos⁻¹</button>
+      <button class="sci-btn fn" onclick="sciFunc('atan(')">tan⁻¹</button>
+      <button class="sci-btn fn" onclick="sciFunc('sqrt(')">√</button>
+      <button class="sci-btn fn" onclick="sciFunc('^')">xʸ</button>
+
+      <!-- Row 3 -->
+      <button class="sci-btn fn" onclick="sciFunc('pi')">π</button>
+      <button class="sci-btn fn" onclick="sciFunc('e')">e</button>
+      <button class="sci-btn fn" onclick="sciFunc('(')"> ( </button>
+      <button class="sci-btn fn" onclick="sciFunc(')')"> ) </button>
+      <button class="sci-btn fn" onclick="sciFunc('fact(')">n!</button>
+
+      <!-- Row 4: 7 8 9 / del -->
+      <button class="sci-btn num" onclick="sciFunc('7')">7</button>
+      <button class="sci-btn num" onclick="sciFunc('8')">8</button>
+      <button class="sci-btn num" onclick="sciFunc('9')">9</button>
+      <button class="sci-btn op" onclick="sciFunc('/')">/</button>
+      <button class="sci-btn clr" onclick="sciDel()">⌫</button>
+
+      <!-- Row 5: 4 5 6 * % -->
+      <button class="sci-btn num" onclick="sciFunc('4')">4</button>
+      <button class="sci-btn num" onclick="sciFunc('5')">5</button>
+      <button class="sci-btn num" onclick="sciFunc('6')">6</button>
+      <button class="sci-btn op" onclick="sciFunc('*')">×</button>
+      <button class="sci-btn fn" onclick="sciFunc('%')">%</button>
+
+      <!-- Row 6: 1 2 3 - AC -->
+      <button class="sci-btn num" onclick="sciFunc('1')">1</button>
+      <button class="sci-btn num" onclick="sciFunc('2')">2</button>
+      <button class="sci-btn num" onclick="sciFunc('3')">3</button>
+      <button class="sci-btn op" onclick="sciFunc('-')">−</button>
+      <button class="sci-btn clr" onclick="sciClear()">AC</button>
+
+      <!-- Row 7: 0 . + = -->
+      <button class="sci-btn num zero" onclick="sciFunc('0')">0</button>
+      <button class="sci-btn num" onclick="sciFunc('.')">.</button>
+      <button class="sci-btn op" onclick="sciFunc('+')">+</button>
+      <button class="sci-btn eq" onclick="sciEval()">=</button>
+    </div>
+    <div id="sci-history" style="font-family:var(--font-mono);font-size:0.72rem;color:var(--muted);padding:0.5rem 0;min-height:1.5rem;"></div>
+  </div>
+</div>
+
+<!-- ========== INCOME TAX CALCULATOR ========== -->
+<div class="panel" id="panel-tax">
+  <div class="tax-grid">
+    <div class="card">
+      <div class="card-title">Income Details</div>
+      <div class="field">
+        <label>Annual Gross Income (₹)</label>
+        <input type="number" id="tax-income" value="1200000" step="10000">
+      </div>
+      <div class="field">
+        <label>Assessment Year</label>
+        <select id="tax-ay">
+          <option value="2025">AY 2025–26</option>
+          <option value="2024">AY 2024–25</option>
+        </select>
+      </div>
+      <div class="card-title" style="margin-top:1rem;">Tax Regime</div>
+      <div class="regime-toggle">
+        <button class="rtab active" id="rtab-new" onclick="setRegime('new')">New Regime</button>
+        <button class="rtab" id="rtab-old" onclick="setRegime('old')">Old Regime</button>
+      </div>
+
+      <div id="old-deductions" style="display:none;">
+        <div class="field">
+          <label>Section 80C Investments (₹)</label>
+          <input type="number" id="tax-80c" value="150000" step="1000" max="150000">
+        </div>
+        <div class="field">
+          <label>HRA Exemption (₹)</label>
+          <input type="number" id="tax-hra" value="0" step="1000">
+        </div>
+        <div class="field">
+          <label>Other Deductions (₹)</label>
+          <input type="number" id="tax-other" value="0" step="1000">
+        </div>
+      </div>
+
+      <button class="btn btn-tax" onclick="calcTax()">Calculate Tax</button>
+
+      <div style="margin-top:1.25rem;">
+        <div class="tax-slab-title" id="slab-heading">New Regime Slabs (FY 2025–26)</div>
+        <div id="slab-table"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Tax Breakdown</div>
+      <div id="tax-result">
+        <div style="color:var(--muted);font-size:0.82rem;font-family:var(--font-mono);padding:2rem 0;text-align:center;">Enter income and calculate →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== TAB SWITCHING =====
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+const tabMap = ['dep','sci','tax'];
+const activeClass = ['active-dep','active-sci','active-tax'];
+
+function switchTab(id) {
+  tabs.forEach((t,i) => t.className = 'tab');
+  panels.forEach(p => p.className = 'panel');
+  const idx = tabMap.indexOf(id);
+  tabs[idx].className = 'tab ' + activeClass[idx];
+  document.getElementById('panel-'+id).className = 'panel active';
+}
+
+// ===== DEPOSIT CALCULATOR =====
+function fmt(n) {
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+function calcDeposit() {
+  const P = parseFloat(document.getElementById('dep-principal').value) || 0;
+  const rAnnual = parseFloat(document.getElementById('dep-rate').value) / 100 || 0;
+  let tenure = parseFloat(document.getElementById('dep-tenure').value) || 0;
+  const tenureType = document.getElementById('dep-tenure-type').value;
+  const freq = document.getElementById('dep-freq').value;
+
+  let years;
+  if (tenureType === 'months') years = tenure / 12;
+  else if (tenureType === 'days') years = tenure / 365;
+  else years = tenure;
+
+  let maturity, interest;
+  if (freq === 'si') {
+    interest = P * rAnnual * years;
+    maturity = P + interest;
+  } else {
+    const n = parseInt(freq);
+    maturity = P * Math.pow(1 + rAnnual / n, n * years);
+    interest = maturity - P;
+  }
+
+  const eff = ((maturity / P - 1) / years) * 100;
+  const monthly = maturity / (years * 12);
+
+  // Bar chart: year by year
+  let bars = '';
+  const yrs = Math.min(Math.ceil(years), 10);
+  const vals = [];
+  for (let y = 1; y <= yrs; y++) {
+    let m;
+    if (freq === 'si') m = P + P * rAnnual * Math.min(y, years);
+    else m = P * Math.pow(1 + rAnnual / parseInt(freq), parseInt(freq) * Math.min(y, years));
+    vals.push(m);
+  }
+  const maxV = vals[vals.length-1];
+  vals.forEach((v,i) => {
+    const pct = (v / maxV * 100).toFixed(1);
+    bars += `<div class="bar-row">
+      <div class="bar-label">Yr ${i+1}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent-deposit);"></div></div>
+      <div class="bar-val dep-accent">${fmt(v)}</div>
+    </div>`;
+  });
+
+  document.getElementById('dep-result').innerHTML = `
+    <div class="result-big">
+      <div class="num dep-accent">${fmt(maturity)}</div>
+      <div class="sub">Maturity Value</div>
+    </div>
+    <div class="result-card">
+      <div class="result-row"><span class="label">Principal</span><span class="val">${fmt(P)}</span></div>
+      <div class="result-row"><span class="label">Total Interest</span><span class="val dep-accent">${fmt(interest)}</span></div>
+      <div class="result-row"><span class="label">Effective Annual Rate</span><span class="val">${eff.toFixed(3)}%</span></div>
+      <div class="result-row"><span class="label">Type</span><span class="val">${freq==='si'?'Simple Interest':'Compound ('+freq+'x/yr)'}</span></div>
+    </div>
+    <div class="bar-wrap" style="margin-top:1.25rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">Year-wise Growth</div>
+      ${bars}
+    </div>
+  `;
+}
+
+// Init deposit on load
+calcDeposit();
+
+// ===== SCIENTIFIC CALCULATOR =====
+let sciExpr = '';
+let sciComputed = false;
+
+function sciFunc(val) {
+  if (sciComputed && /[\d(]/.test(val[0]) && val !== '(' && val !== ')') {
+    sciExpr = '';
+    sciComputed = false;
+  }
+  sciExpr += val;
+  document.getElementById('sci-disp').textContent = sciExpr || '0';
+  document.getElementById('sci-expr').textContent = '';
+}
+
+function sciDel() {
+  sciExpr = sciExpr.slice(0,-1);
+  document.getElementById('sci-disp').textContent = sciExpr || '0';
+}
+
+function sciClear() {
+  sciExpr = '';
+  document.getElementById('sci-disp').textContent = '0';
+  document.getElementById('sci-expr').textContent = '';
+  sciComputed = false;
+}
+
+function fact(n) {
+  n = Math.round(n);
+  if (n < 0) return NaN;
+  if (n === 0 || n === 1) return 1;
+  let r = 1;
+  for (let i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
+function sciEval() {
+  if (!sciExpr) return;
+  try {
+    let expr = sciExpr
+      .replace(/\^/g, '**')
+      .replace(/sin\(/g, 'Math.sin(')
+      .replace(/cos\(/g, 'Math.cos(')
+      .replace(/tan\(/g, 'Math.tan(')
+      .replace(/asin\(/g, 'Math.asin(')
+      .replace(/acos\(/g, 'Math.acos(')
+      .replace(/atan\(/g, 'Math.atan(')
+      .replace(/sqrt\(/g, 'Math.sqrt(')
+      .replace(/log\(/g, 'Math.log10(')
+      .replace(/ln\(/g, 'Math.log(')
+      .replace(/fact\(/g, 'fact(')
+      .replace(/\bpi\b/g, 'Math.PI')
+      .replace(/\be\b/g, 'Math.E')
+      .replace(/(\d+)%/g, '($1/100)');
+
+    const result = Function('fact', '"use strict"; return (' + expr + ')')(fact);
+    if (!isFinite(result)) throw new Error('Infinity');
+    const display = Number.isInteger(result) ? result.toString() : parseFloat(result.toPrecision(12)).toString();
+    document.getElementById('sci-expr').textContent = sciExpr + ' =';
+    document.getElementById('sci-disp').textContent = display;
+    document.getElementById('sci-history').textContent = 'Last: ' + sciExpr + ' = ' + display;
+    sciExpr = display;
+    sciComputed = true;
+  } catch(e) {
+    document.getElementById('sci-disp').textContent = 'Error';
+    document.getElementById('sci-expr').textContent = sciExpr;
+    setTimeout(() => {
+      document.getElementById('sci-disp').textContent = sciExpr || '0';
+    }, 900);
+    sciComputed = false;
+  }
+}
+
+// Keyboard support for scientific calc
+document.addEventListener('keydown', e => {
+  const panel = document.getElementById('panel-sci');
+  if (!panel.classList.contains('active')) return;
+  if (e.key >= '0' && e.key <= '9') sciFunc(e.key);
+  else if (e.key === '+') sciFunc('+');
+  else if (e.key === '-') sciFunc('-');
+  else if (e.key === '*') sciFunc('*');
+  else if (e.key === '/') { e.preventDefault(); sciFunc('/'); }
+  else if (e.key === '.') sciFunc('.');
+  else if (e.key === 'Enter' || e.key === '=') sciEval();
+  else if (e.key === 'Backspace') sciDel();
+  else if (e.key === 'Escape') sciClear();
+  else if (e.key === '(' || e.key === ')') sciFunc(e.key);
+});
+
+// ===== INCOME TAX CALCULATOR =====
+let taxRegime = 'new';
+
+const slabsNew25 = [
+  { from: 0, to: 400000, rate: 0 },
+  { from: 400000, to: 800000, rate: 5 },
+  { from: 800000, to: 1200000, rate: 10 },
+  { from: 1200000, to: 1600000, rate: 15 },
+  { from: 1600000, to: 2000000, rate: 20 },
+  { from: 2000000, to: 2400000, rate: 25 },
+  { from: 2400000, to: Infinity, rate: 30 },
+];
+
+const slabsOld25 = [
+  { from: 0, to: 250000, rate: 0 },
+  { from: 250000, to: 500000, rate: 5 },
+  { from: 500000, to: 1000000, rate: 20 },
+  { from: 1000000, to: Infinity, rate: 30 },
+];
+
+function setRegime(r) {
+  taxRegime = r;
+  document.getElementById('rtab-new').className = 'rtab' + (r==='new'?' active':'');
+  document.getElementById('rtab-old').className = 'rtab' + (r==='old'?' active':'');
+  document.getElementById('old-deductions').style.display = r==='old'?'block':'none';
+  renderSlabTable();
+}
+
+function renderSlabTable() {
+  const slabs = taxRegime === 'new' ? slabsNew25 : slabsOld25;
+  document.getElementById('slab-heading').textContent = taxRegime==='new' ? 'New Regime Slabs (FY 2025–26)' : 'Old Regime Slabs (FY 2025–26)';
+  let html = '';
+  slabs.forEach(s => {
+    const from = s.from === 0 ? 'Up to' : '₹'+s.from.toLocaleString('en-IN')+'–';
+    const to = s.to === Infinity ? 'Above ₹'+s.from.toLocaleString('en-IN') : '₹'+s.to.toLocaleString('en-IN');
+    const range = s.from === 0 ? (from+' '+to) : (from+to);
+    html += `<div class="slab-row">
+      <span class="slab-range">${range}</span>
+      <span class="slab-pct">${s.rate}%</span>
+    </div>`;
+  });
+  document.getElementById('slab-table').innerHTML = html;
+}
+renderSlabTable();
+
+function calcSlabs(income, slabs) {
+  let tax = 0;
+  const breakdown = [];
+  for (const s of slabs) {
+    if (income <= s.from) break;
+    const taxable = Math.min(income, s.to) - s.from;
+    const t = taxable * s.rate / 100;
+    if (t > 0 || s.rate > 0) {
+      breakdown.push({ label: `${s.rate}% on ₹${taxable.toLocaleString('en-IN')}`, amt: t });
+    }
+    tax += t;
+  }
+  return { tax, breakdown };
+}
+
+function calcTax() {
+  let income = parseFloat(document.getElementById('tax-income').value) || 0;
+  const ay = document.getElementById('tax-ay').value;
+  const slabs = taxRegime === 'new' ? slabsNew25 : slabsOld25;
+
+  let deductions = 0;
+  if (taxRegime === 'old') {
+    const c80 = Math.min(parseFloat(document.getElementById('tax-80c').value)||0, 150000);
+    const hra = parseFloat(document.getElementById('tax-hra').value)||0;
+    const other = parseFloat(document.getElementById('tax-other').value)||0;
+    const std = 50000;
+    deductions = c80 + hra + other + std;
+  } else {
+    deductions = 75000; // standard deduction new regime
+  }
+
+  const taxableIncome = Math.max(0, income - deductions);
+  let { tax, breakdown } = calcSlabs(taxableIncome, slabs);
+
+  // Rebate u/s 87A
+  let rebate = 0;
+  if (taxRegime === 'new' && taxableIncome <= 1200000) rebate = Math.min(tax, 60000);
+  if (taxRegime === 'old' && taxableIncome <= 500000) rebate = Math.min(tax, 12500);
+  tax = Math.max(0, tax - rebate);
+
+  const surcharge = taxableIncome > 5000000 ? tax * 0.10 :
+                    taxableIncome > 10000000 ? tax * 0.15 : 0;
+  const cess = (tax + surcharge) * 0.04;
+  const totalTax = tax + surcharge + cess;
+  const effective = income > 0 ? (totalTax / income * 100) : 0;
+  const takeHome = income - totalTax;
+
+  // Donut data
+  const takePct = (takeHome / income * 100).toFixed(1);
+  const taxPct = (totalTax / income * 100).toFixed(1);
+  const radius = 54, cx = 64, cy = 64, stroke = 18;
+  const circ = 2 * Math.PI * radius;
+  const taxDash = (totalTax / income) * circ;
+  const restDash = circ - taxDash;
+
+  let bkRows = breakdown.map(b =>
+    `<tr><td>${b.label}</td><td class="right tax-accent">₹${Math.round(b.amt).toLocaleString('en-IN')}</td></tr>`
+  ).join('');
+
+  document.getElementById('tax-result').innerHTML = `
+    <div class="result-big">
+      <div class="num tax-accent">₹${Math.round(totalTax).toLocaleString('en-IN')}</div>
+      <div class="sub">Total Tax Payable</div>
+    </div>
+
+    <div class="donut-wrap" style="margin:1rem 0;">
+      <svg class="donut-svg" width="128" height="128" viewBox="0 0 128 128">
+        <circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="#2a2a30" stroke-width="${stroke}"/>
+        <circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="var(--accent-tax)" stroke-width="${stroke}"
+          stroke-dasharray="${taxDash} ${restDash}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
+        <text x="64" y="60" text-anchor="middle" fill="var(--text)" font-size="13" font-family="'DM Mono',monospace" font-weight="500">${taxPct}%</text>
+        <text x="64" y="76" text-anchor="middle" fill="var(--muted)" font-size="9" font-family="'DM Mono',monospace">tax</text>
+      </svg>
+      <div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--accent-tax)"></span>Tax: ₹${Math.round(totalTax).toLocaleString('en-IN')} (${taxPct}%)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--accent-deposit)"></span>Take-home: ₹${Math.round(takeHome).toLocaleString('en-IN')} (${takePct}%)</div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-row"><span class="label">Gross Income</span><span class="val">₹${income.toLocaleString('en-IN')}</span></div>
+      <div class="result-row"><span class="label">Total Deductions</span><span class="val">₹${Math.round(deductions).toLocaleString('en-IN')}</span></div>
+      <div class="result-row"><span class="label">Taxable Income</span><span class="val">₹${Math.round(taxableIncome).toLocaleString('en-IN')}</span></div>
+      ${rebate > 0 ? `<div class="result-row"><span class="label">Rebate (87A)</span><span class="val dep-accent">−₹${Math.round(rebate).toLocaleString('en-IN')}</span></div>` : ''}
+      ${surcharge > 0 ? `<div class="result-row"><span class="label">Surcharge</span><span class="val tax-accent">₹${Math.round(surcharge).toLocaleString('en-IN')}</span></div>` : ''}
+      <div class="result-row"><span class="label">Health & Ed. Cess (4%)</span><span class="val">₹${Math.round(cess).toLocaleString('en-IN')}</span></div>
+      <div class="result-row"><span class="label">Effective Tax Rate</span><span class="val">${effective.toFixed(2)}%</span></div>
+      <div class="result-row"><span class="label">Monthly Take-home</span><span class="val dep-accent">₹${Math.round(takeHome/12).toLocaleString('en-IN')}</span></div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.5rem;">Slab-wise Breakdown</div>
+      <table class="bk-table">
+        <thead><tr><th>Slab</th><th class="right">Tax</th></tr></thead>
+        <tbody>${bkRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
